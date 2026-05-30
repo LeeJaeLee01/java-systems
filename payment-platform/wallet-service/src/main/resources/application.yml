@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: wallet-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/wallet_db
+    username: payment
+    password: payment
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

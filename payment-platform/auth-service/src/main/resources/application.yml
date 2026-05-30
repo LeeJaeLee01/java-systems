@@ -1,0 +1,36 @@
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/auth_db
+    username: payment
+    password: payment
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+server:
+  port: 8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+auth:
+  jwt:
+    secret: change-me-auth-jwt-secret-key-for-dev-only-32chars
+    access-token-expiration-minutes: 15
+  rate-limit:
+    max-requests-per-minute: 5
+    block-duration-minutes: 15
+    window-key-prefix: "auth:rate:"
+    block-key-prefix: "auth:block:"

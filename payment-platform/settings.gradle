@@ -1,0 +1,11 @@
+rootProject.name = 'payment-platform'
+
+include(
+	'common-lib',
+	'api-gateway',
+	'auth-service',
+	'wallet-service',
+	'payment-service',
+	'notification-service',
+	'fraud-service'
+)

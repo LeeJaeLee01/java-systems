@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:authdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+
+auth:
+  jwt:
+    secret: test-auth-jwt-secret-key-for-dev-only-32chars
+    access-token-expiration-minutes: 15
+  rate-limit:
+    max-requests-per-minute: 5
+    block-duration-minutes: 15
