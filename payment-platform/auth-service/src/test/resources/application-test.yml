@@ -20,3 +20,8 @@ auth:
   rate-limit:
     max-requests-per-minute: 5
     block-duration-minutes: 15
+  cors:
+    allowed-origins: http://localhost:3000,http://localhost:8080
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true

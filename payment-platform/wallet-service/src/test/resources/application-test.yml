@@ -12,3 +12,11 @@ spring:
   autoconfigure:
     exclude:
       - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+
+wallet:
+  lock:
+    wait-time-ms: 100
+    lease-time-ms: 1000
+  cache:
+    enabled: false

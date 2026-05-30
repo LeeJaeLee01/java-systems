@@ -27,7 +27,7 @@ Client → API Gateway (8080) → auth-service (8081)
 | Stateless API (no session) | Done | `SessionCreationPolicy.STATELESS` |
 | CSRF disabled | Done | Appropriate for JWT/stateless REST |
 | Public auth endpoints | Done | `/api/auth/**`, `/actuator/**` |
-| CORS policy | Done | Allowed origins: `localhost:3000`, `localhost:8080` |
+| CORS policy | Done | Configurable via `auth.cors.*` / env `AUTH_CORS_ALLOWED_ORIGINS` |
 | Security headers | Done | `X-Content-Type-Options`, `X-Frame-Options: DENY`, CSP |
 | Rate limit filter | Done | `AuthRateLimitFilter` before auth processing |
 
@@ -99,6 +99,18 @@ auth:
     block-duration-minutes: 15
     window-key-prefix: "auth:rate:"
     block-key-prefix: "auth:block:"
+  cors:
+    allowed-origins: ${AUTH_CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:8080}
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: "*"
+    allow-credentials: true
+```
+
+**Environment override example:**
+
+```bash
+export AUTH_CORS_ALLOWED_ORIGINS="http://localhost:3000,https://app.example.com"
+./gradlew :auth-service:bootRun
 ```
 
 ### 3.4 Response on Rate Limit
@@ -190,7 +202,8 @@ auth-service/src/main/java/com/paymentsystem/auth/
 ├── AuthServiceApplication.java
 ├── config/
 │   ├── SecurityConfig.java
-│   └── AuthRateLimitProperties.java
+│   ├── AuthRateLimitProperties.java
+│   └── AuthCorsProperties.java
 ├── controller/
 │   └── AuthController.java
 ├── service/

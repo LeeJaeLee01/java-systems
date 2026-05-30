@@ -64,3 +64,4 @@ source ~/.bashrc
 - `payment-service` writes outbox events and publishes to Kafka topic `payment-events`.
 - `notification-service` and `fraud-service` consume the same topic with inbox deduplication.
 - **Auth module docs:** [auth-service/docs/AUTH_MODULE.md](auth-service/docs/AUTH_MODULE.md) (Spring Security + Redis rate limiter)
+- **Wallet module docs:** [wallet-service/docs/WALLET_MODULE.md](wallet-service/docs/WALLET_MODULE.md) (Deposit/Withdraw + pessimistic lock)
