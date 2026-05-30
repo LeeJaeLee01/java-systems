@@ -1,6 +1,7 @@
 package com.paymentsystem.payment.controller;
 
 import com.paymentsystem.common.dto.ApiResponse;
+import com.paymentsystem.common.idempotency.Idempotent;
 import com.paymentsystem.payment.dto.PaymentResponse;
 import com.paymentsystem.payment.dto.TransferRequest;
 import com.paymentsystem.payment.service.PaymentService;
@@ -9,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -25,12 +25,10 @@ public class PaymentController {
 		return ApiResponse.ok("payment-service is running");
 	}
 
+	@Idempotent
 	@PostMapping("/transfer")
-	public ApiResponse<PaymentResponse> transfer(
-		@RequestHeader("Idempotency-Key") String idempotencyKey,
-		@Valid @RequestBody TransferRequest request
-	) {
-		return ApiResponse.ok("Transfer processed", paymentService.transfer(idempotencyKey, request));
+	public ApiResponse<PaymentResponse> transfer(@Valid @RequestBody TransferRequest request) {
+		return ApiResponse.ok("Transfer processed", paymentService.transfer(request));
 	}
 
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.paymentsystem.common.constant.KafkaTopics;
 import com.paymentsystem.common.dto.ApiResponse;
 import com.paymentsystem.common.enums.TransactionStatus;
+import com.paymentsystem.common.idempotency.IdempotencyKeyContext;
 import com.paymentsystem.common.event.PaymentCompletedEvent;
 import com.paymentsystem.payment.domain.OutboxEvent;
 import com.paymentsystem.payment.domain.PaymentTransaction;
@@ -31,13 +32,12 @@ public class PaymentService {
 
 	private final PaymentTransactionRepository paymentTransactionRepository;
 	private final OutboxEventRepository outboxEventRepository;
-	private final IdempotencyService idempotencyService;
 	private final RestClient walletRestClient;
 	private final ObjectMapper objectMapper;
 
 	@Transactional
-	public PaymentResponse transfer(String idempotencyKey, TransferRequest request) {
-		return idempotencyService.execute(idempotencyKey, PaymentResponse.class, () -> processTransfer(idempotencyKey, request));
+	public PaymentResponse transfer(TransferRequest request) {
+		return processTransfer(IdempotencyKeyContext.require(), request);
 	}
 
 	private PaymentResponse processTransfer(String idempotencyKey, TransferRequest request) {

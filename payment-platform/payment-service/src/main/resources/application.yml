@@ -33,3 +33,10 @@ management:
 services:
   wallet:
     base-url: http://localhost:8082
+
+payment:
+  idempotency:
+    response-key-prefix: "idempotency:response:"
+    processing-key-prefix: "idempotency:processing:"
+    response-ttl-hours: 24
+    processing-ttl-minutes: 5
