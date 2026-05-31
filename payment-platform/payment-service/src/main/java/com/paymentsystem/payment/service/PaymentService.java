@@ -1,6 +1,7 @@
 package com.paymentsystem.payment.service;
 
 import com.paymentsystem.common.dto.ApiResponse;
+import com.paymentsystem.common.enums.PaymentStateEvent;
 import com.paymentsystem.common.enums.TransactionStatus;
 import com.paymentsystem.common.idempotency.IdempotencyKeyContext;
 import com.paymentsystem.payment.domain.PaymentTransaction;
@@ -9,6 +10,7 @@ import com.paymentsystem.payment.dto.TransferRequest;
 import com.paymentsystem.payment.dto.WalletOperationPayload;
 import com.paymentsystem.payment.dto.WalletServiceResponse;
 import com.paymentsystem.payment.repository.PaymentTransactionRepository;
+import com.paymentsystem.payment.statemachine.PaymentLifecycleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
@@ -26,12 +28,9 @@ public class PaymentService {
 
 	private final PaymentTransactionRepository paymentTransactionRepository;
 	private final OutboxService outboxService;
+	private final PaymentLifecycleService paymentLifecycleService;
 	private final RestClient walletRestClient;
 
-	/**
-	 * Atomically persists the payment row and an outbox event in one local transaction.
-	 * Kafka is never called here — the {@link OutboxPublisher} worker handles delivery.
-	 */
 	@Transactional
 	public PaymentResponse transfer(TransferRequest request) {
 		return processTransfer(IdempotencyKeyContext.require(), request);
@@ -51,27 +50,27 @@ public class PaymentService {
 			.userId(request.userId())
 			.idempotencyKey(idempotencyKey)
 			.amount(request.amount())
-			.status(TransactionStatus.PROCESSING.name())
+			.status(TransactionStatus.PENDING.name())
 			.createdAt(now)
 			.updatedAt(now)
 			.build();
 
 		paymentTransactionRepository.save(payment);
+		paymentLifecycleService.transition(payment, PaymentStateEvent.START_PROCESSING);
+		paymentTransactionRepository.save(payment);
 
 		try {
 			debitWallet(request.walletId(), paymentId, request.amount());
-			payment.setStatus(TransactionStatus.SUCCESS.name());
-			payment.setUpdatedAt(Instant.now());
+			paymentLifecycleService.transition(payment, PaymentStateEvent.COMPLETE);
 			paymentTransactionRepository.save(payment);
-
-			// Same transaction: payment row + outbox row commit together
 			outboxService.enqueuePaymentCompleted(payment);
 			return toResponse(payment);
 		}
 		catch (RuntimeException ex) {
-			payment.setStatus(TransactionStatus.FAILED.name());
-			payment.setUpdatedAt(Instant.now());
-			paymentTransactionRepository.save(payment);
+			if (!paymentLifecycleService.isTerminal(TransactionStatus.valueOf(payment.getStatus()))) {
+				paymentLifecycleService.transition(payment, PaymentStateEvent.FAIL);
+				paymentTransactionRepository.save(payment);
+			}
 			throw ex;
 		}
 	}

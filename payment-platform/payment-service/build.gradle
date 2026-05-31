@@ -14,5 +14,6 @@ dependencies {
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
 	implementation 'com.stripe:stripe-java:29.5.0'
+	implementation 'org.springframework.statemachine:spring-statemachine-starter:4.0.1'
 	runtimeOnly 'org.postgresql:postgresql'
 }
