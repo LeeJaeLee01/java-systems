@@ -1,5 +1,6 @@
 package com.paymentsystem.payment;
 
+import com.paymentsystem.payment.reconciliation.scheduler.ReconciliationScheduler;
 import com.paymentsystem.payment.service.IdempotencyService;
 import com.paymentsystem.payment.service.OutboxPublisher;
 import com.paymentsystem.payment.service.PaymentService;
@@ -28,6 +29,9 @@ class PaymentServiceApplicationTests {
 
 	@MockBean
 	private StripePaymentIntentService stripePaymentIntentService;
+
+	@MockBean
+	private ReconciliationScheduler reconciliationScheduler;
 
 	@Test
 	void contextLoads() {

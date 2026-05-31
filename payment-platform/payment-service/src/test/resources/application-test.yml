@@ -16,6 +16,15 @@ spring:
   task:
     scheduling:
       enabled: false
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: embedded
+
+payment:
+  reconciliation:
+    enabled: false
 
 services:
   wallet:

@@ -41,6 +41,9 @@ public class PaymentTransaction {
 	@Column(nullable = false)
 	private String status;
 
+	@Column(name = "stripe_payment_intent_id")
+	private String stripePaymentIntentId;
+
 	@Column(name = "created_at", nullable = false)
 	private Instant createdAt;
 

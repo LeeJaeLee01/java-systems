@@ -22,6 +22,11 @@ spring:
       retries: 3
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+  batch:
+    job:
+      enabled: false
+    jdbc:
+      initialize-schema: always
 
 server:
   port: 8083
@@ -49,6 +54,11 @@ payment:
     initial-retry-delay-seconds: 30
     publish-timeout-seconds: 10
     claim-stale-seconds: 300
+  reconciliation:
+    enabled: true
+    cron: "0 0 2 * * *"
+    lookback-days: 1
+    default-currency: usd
 
 stripe:
   api-key: ${STRIPE_API_KEY:}
