@@ -1,19 +1,13 @@
 package com.paymentsystem.payment.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.paymentsystem.common.constant.KafkaTopics;
 import com.paymentsystem.common.dto.ApiResponse;
 import com.paymentsystem.common.enums.TransactionStatus;
 import com.paymentsystem.common.idempotency.IdempotencyKeyContext;
-import com.paymentsystem.common.event.PaymentCompletedEvent;
-import com.paymentsystem.payment.domain.OutboxEvent;
 import com.paymentsystem.payment.domain.PaymentTransaction;
 import com.paymentsystem.payment.dto.PaymentResponse;
 import com.paymentsystem.payment.dto.TransferRequest;
 import com.paymentsystem.payment.dto.WalletOperationPayload;
 import com.paymentsystem.payment.dto.WalletServiceResponse;
-import com.paymentsystem.payment.repository.OutboxEventRepository;
 import com.paymentsystem.payment.repository.PaymentTransactionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
@@ -31,10 +25,13 @@ import java.util.UUID;
 public class PaymentService {
 
 	private final PaymentTransactionRepository paymentTransactionRepository;
-	private final OutboxEventRepository outboxEventRepository;
+	private final OutboxService outboxService;
 	private final RestClient walletRestClient;
-	private final ObjectMapper objectMapper;
 
+	/**
+	 * Atomically persists the payment row and an outbox event in one local transaction.
+	 * Kafka is never called here — the {@link OutboxPublisher} worker handles delivery.
+	 */
 	@Transactional
 	public PaymentResponse transfer(TransferRequest request) {
 		return processTransfer(IdempotencyKeyContext.require(), request);
@@ -67,9 +64,9 @@ public class PaymentService {
 			payment.setUpdatedAt(Instant.now());
 			paymentTransactionRepository.save(payment);
 
-			PaymentResponse response = toResponse(payment);
-			saveOutboxEvent(payment, response);
-			return response;
+			// Same transaction: payment row + outbox row commit together
+			outboxService.enqueuePaymentCompleted(payment);
+			return toResponse(payment);
 		}
 		catch (RuntimeException ex) {
 			payment.setStatus(TransactionStatus.FAILED.name());
@@ -89,33 +86,6 @@ public class PaymentService {
 
 		if (response == null || !response.success()) {
 			throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Wallet debit failed");
-		}
-	}
-
-	private void saveOutboxEvent(PaymentTransaction payment, PaymentResponse response) {
-		try {
-			PaymentCompletedEvent event = new PaymentCompletedEvent(
-				UUID.randomUUID(),
-				payment.getId(),
-				payment.getWalletId(),
-				payment.getUserId(),
-				payment.getAmount(),
-				payment.getStatus(),
-				Instant.now()
-			);
-
-			outboxEventRepository.save(OutboxEvent.builder()
-				.id(UUID.randomUUID())
-				.aggregateType("PAYMENT")
-				.aggregateId(payment.getId())
-				.eventType(KafkaTopics.PAYMENT_EVENTS)
-				.payload(objectMapper.writeValueAsString(event))
-				.status("PENDING")
-				.createdAt(Instant.now())
-				.build());
-		}
-		catch (JsonProcessingException ex) {
-			throw new IllegalStateException("Failed to serialize outbox payload", ex);
 		}
 	}
 

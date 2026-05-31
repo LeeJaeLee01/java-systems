@@ -18,6 +18,8 @@ spring:
   kafka:
     bootstrap-servers: localhost:9092
     producer:
+      acks: all
+      retries: 3
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
@@ -40,6 +42,13 @@ payment:
     processing-key-prefix: "idempotency:processing:"
     response-ttl-hours: 24
     processing-ttl-minutes: 5
+  outbox:
+    poll-interval-ms: 5000
+    batch-size: 50
+    max-retries: 5
+    initial-retry-delay-seconds: 30
+    publish-timeout-seconds: 10
+    claim-stale-seconds: 300
 
 stripe:
   api-key: ${STRIPE_API_KEY:}

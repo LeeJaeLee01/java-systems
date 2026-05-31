@@ -15,7 +15,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "payment_transactions")
+@Table(name = "payments")
 @Getter
 @Setter
 @Builder

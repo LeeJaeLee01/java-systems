@@ -1,5 +1,6 @@
 package com.paymentsystem.payment.domain;
 
+import com.paymentsystem.common.enums.OutboxEventStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -48,5 +49,21 @@ public class OutboxEvent {
 
 	@Column(name = "published_at")
 	private Instant publishedAt;
+
+	@Column(name = "retry_count", nullable = false)
+	private int retryCount = 0;
+
+	@Column(name = "last_error")
+	private String lastError;
+
+	@Column(name = "next_retry_at")
+	private Instant nextRetryAt;
+
+	@Column(name = "claimed_at")
+	private Instant claimedAt;
+
+	public boolean isProcessing() {
+		return OutboxEventStatus.PROCESSING.name().equals(status);
+	}
 
 }
