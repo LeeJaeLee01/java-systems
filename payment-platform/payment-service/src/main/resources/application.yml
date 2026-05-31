@@ -40,3 +40,8 @@ payment:
     processing-key-prefix: "idempotency:processing:"
     response-ttl-hours: 24
     processing-ttl-minutes: 5
+
+stripe:
+  api-key: ${STRIPE_API_KEY:}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  webhook-tolerance-seconds: ${STRIPE_WEBHOOK_TOLERANCE_SECONDS:300}
