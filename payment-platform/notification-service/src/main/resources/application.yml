@@ -27,3 +27,18 @@ management:
     web:
       exposure:
         include: health,info
+
+notification:
+  executor:
+    core-pool-size: 4
+    max-pool-size: 8
+    queue-capacity: 100
+    thread-name-prefix: notification-
+  ses:
+    enabled: false
+    region: us-east-1
+    from-email: noreply@paymentsystem.local
+  sms:
+    enabled: false
+    region: us-east-1
+    default-country-code: "+1"

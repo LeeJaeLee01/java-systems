@@ -1,6 +1,6 @@
 package com.paymentsystem.notification;
 
-import com.paymentsystem.notification.service.PaymentEventConsumer;
+import com.paymentsystem.notification.kafka.PaymentCompletedEventListener;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -11,7 +11,7 @@ import org.springframework.test.context.ActiveProfiles;
 class NotificationServiceApplicationTests {
 
 	@MockBean
-	private PaymentEventConsumer paymentEventConsumer;
+	private PaymentCompletedEventListener paymentCompletedEventListener;
 
 	@Test
 	void contextLoads() {

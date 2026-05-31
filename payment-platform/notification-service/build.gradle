@@ -10,5 +10,10 @@ dependencies {
 	implementation 'org.springframework.kafka:spring-kafka'
 	implementation 'org.flywaydb:flyway-core'
 	implementation 'org.flywaydb:flyway-database-postgresql'
+	implementation platform('software.amazon.awssdk:bom:2.29.45')
+	implementation 'software.amazon.awssdk:ses'
+	implementation 'software.amazon.awssdk:sns'
 	runtimeOnly 'org.postgresql:postgresql'
+
+	testImplementation 'com.h2database:h2'
 }
