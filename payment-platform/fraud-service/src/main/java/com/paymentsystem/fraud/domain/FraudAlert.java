@@ -31,6 +31,15 @@ public class FraudAlert {
 	@Column(name = "user_id", nullable = false)
 	private UUID userId;
 
+	@Column(name = "payment_id")
+	private UUID paymentId;
+
+	@Column(name = "alert_type", nullable = false)
+	private String alertType;
+
+	@Column(name = "transaction_count")
+	private Integer transactionCount;
+
 	@Column(nullable = false)
 	private String reason;
 

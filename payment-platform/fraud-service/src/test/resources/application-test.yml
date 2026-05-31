@@ -16,4 +16,7 @@ spring:
 
 fraud:
   velocity:
-    max-transactions-per-10-seconds: 5
+    key-prefix: "fraud:velocity:user:"
+    window-seconds: 10
+    max-transactions: 5
+    key-ttl-buffer-seconds: 5

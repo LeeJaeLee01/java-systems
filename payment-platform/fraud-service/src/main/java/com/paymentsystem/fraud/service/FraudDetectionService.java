@@ -1,7 +1,5 @@
 package com.paymentsystem.fraud.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.paymentsystem.common.constant.KafkaTopics;
 import com.paymentsystem.common.constant.PaymentEventTypes;
 import com.paymentsystem.common.event.PaymentCompletedEvent;
 import com.paymentsystem.fraud.domain.FraudAlert;
@@ -10,14 +8,10 @@ import com.paymentsystem.fraud.repository.FraudAlertRepository;
 import com.paymentsystem.fraud.repository.InboxEventRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -26,24 +20,35 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class FraudDetectionService {
 
+	public static final String ALERT_TYPE_HIGH_FREQUENCY = "HIGH_FREQUENCY";
+
 	private final InboxEventRepository inboxEventRepository;
 	private final FraudAlertRepository fraudAlertRepository;
-	private final StringRedisTemplate redisTemplate;
-	private final ObjectMapper objectMapper;
+	private final SlidingWindowVelocityService slidingWindowVelocityService;
 
-	@Value("${fraud.velocity.max-transactions-per-10-seconds}")
-	private long maxTransactionsPer10Seconds;
-
-	@KafkaListener(topics = KafkaTopics.PAYMENT_EVENTS, groupId = "fraud-service")
 	@Transactional
-	public void consume(String payload) throws Exception {
-		PaymentCompletedEvent event = objectMapper.readValue(payload, PaymentCompletedEvent.class);
-
+	public void processPaymentEvent(PaymentCompletedEvent event) {
 		if (inboxEventRepository.existsByMessageId(event.eventId())) {
 			log.info("Skip duplicate fraud event {}", event.eventId());
 			return;
 		}
 
+		if (!registerInbox(event)) {
+			return;
+		}
+
+		VelocityCheckResult velocity = slidingWindowVelocityService.checkUserVelocity(
+			event.userId(),
+			event.eventId(),
+			event.occurredAt() != null ? event.occurredAt() : Instant.now()
+		);
+
+		if (velocity.exceeded()) {
+			createHighFrequencyAlert(event, velocity);
+		}
+	}
+
+	private boolean registerInbox(PaymentCompletedEvent event) {
 		try {
 			inboxEventRepository.save(InboxEvent.builder()
 				.id(UUID.randomUUID())
@@ -51,28 +56,40 @@ public class FraudDetectionService {
 				.eventType(PaymentEventTypes.PAYMENT_COMPLETED)
 				.processedAt(Instant.now())
 				.build());
+			return true;
 		}
 		catch (DataIntegrityViolationException ex) {
 			log.info("Skip concurrent duplicate fraud event {}", event.eventId());
-			return;
+			return false;
 		}
+	}
 
-		String velocityKey = "fraud:velocity:" + event.walletId();
-		Long count = redisTemplate.opsForValue().increment(velocityKey);
-		if (count != null && count == 1L) {
-			redisTemplate.expire(velocityKey, Duration.ofSeconds(10));
-		}
+	private void createHighFrequencyAlert(PaymentCompletedEvent event, VelocityCheckResult velocity) {
+		String reason = "User exceeded velocity limit: %d transactions in %d seconds (max %d)".formatted(
+			velocity.transactionCount(),
+			velocity.windowSeconds(),
+			velocity.maxTransactions()
+		);
 
-		if (count != null && count > maxTransactionsPer10Seconds) {
-			fraudAlertRepository.save(FraudAlert.builder()
-				.id(UUID.randomUUID())
-				.walletId(event.walletId())
-				.userId(event.userId())
-				.reason("More than " + maxTransactionsPer10Seconds + " transactions within 10 seconds")
-				.createdAt(Instant.now())
-				.build());
-			log.warn("Fraud alert created for wallet {}", event.walletId());
-		}
+		fraudAlertRepository.save(FraudAlert.builder()
+			.id(UUID.randomUUID())
+			.walletId(event.walletId())
+			.userId(event.userId())
+			.paymentId(event.paymentId())
+			.alertType(ALERT_TYPE_HIGH_FREQUENCY)
+			.transactionCount((int) velocity.transactionCount())
+			.reason(reason)
+			.createdAt(Instant.now())
+			.build());
+
+		log.warn(
+			"Fraud alert [{}] for user {} wallet {} payment {} — {}",
+			ALERT_TYPE_HIGH_FREQUENCY,
+			event.userId(),
+			event.walletId(),
+			event.paymentId(),
+			reason
+		);
 	}
 
 }
